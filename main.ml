@@ -85,6 +85,11 @@ let example_form =
 Printf.printf "sharp_sat(%s) = %n\n" (show_form example_form) (get_sharp_sat example_form);;
 
 (* Step 2 *)
+(* 
+  Given a formula with at least one free variable
+  form the partial equation that leaves the first variable free
+  and sums over the superset of all other variables   
+*)
 let rec get_partial_sum formula : partial_sum =
   match get_first_free_variable formula with
   | None -> raise NoFreeVariableError
@@ -99,3 +104,4 @@ Printf.printf "partial_sum(%s) = %s\n" (show_form example_form) (get_partial_sum
 let g0 = get_sharp_sat example_form;;
 let g1 = get_partial_sum example_form;;
 Printf.printf "g0 == g1(0) + g1(1) is %b\n" (g0 == g1#eval 0 + g1#eval 1);;
+
