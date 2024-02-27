@@ -20,8 +20,19 @@ let rec show_form formula =
   | And (f1, f2) -> "(" ^ show_form f1 ^ " ^ " ^ show_form f2 ^ ")"
   | Or (f1, f2) -> "(" ^ show_form f1 ^ " ∨ " ^ show_form f2 ^ ")"
 
+(* Partial Sum: A monomial linear equation *)
+class partial_sum coefficient constant =
+  object
+    method show : string =
+      Printf.sprintf "%d * X + %d" coefficient constant
+    method eval x : int =
+      x * coefficient + constant
+  end
+
 (* A free variable exists with given name *)
 exception FreeVariableError of string
+(* No free variable exists when one is required *)
+exception NoFreeVariableError
 
 (* Constrain the given variable to value in the formula *)
 let rec constrain formula variable value =
@@ -62,12 +73,29 @@ let rec get_sharp_sat (formula : form) : int =
     get_sharp_sat (constrain formula v true);;
 
 (* (X1 ∧ ¬X2) ∨ (X3 ∨ (X4 ∧ ¬X5)) *)
+(* Has 23 satisfying assignments *)
 let example_form =
   Or(
     And(Variable "1", Not(Variable "2")),
     Or(Variable "3", And(
       Variable "4", Not(Variable "5"))
     )
-  ) in
+  );;
 
-Printf.printf "sharp_sat(%s) = %n\n" (show_form example_form) (get_sharp_sat example_form)
+Printf.printf "sharp_sat(%s) = %n\n" (show_form example_form) (get_sharp_sat example_form);;
+
+(* Step 2 *)
+let rec get_partial_sum formula : partial_sum =
+  match get_first_free_variable formula with
+  | None -> raise NoFreeVariableError
+  | Some v ->
+    let f_at_0 = get_sharp_sat (constrain formula v false) in
+    let f_at_1 = get_sharp_sat (constrain formula v true) in
+    new partial_sum (f_at_1 - f_at_0) f_at_0;;
+
+Printf.printf "partial_sum(%s) = %s\n" (show_form example_form) (get_partial_sum example_form)#show;;
+
+(* Step 3 *)
+let g0 = get_sharp_sat example_form;;
+let g1 = get_partial_sum example_form;;
+Printf.printf "g0 == g1(0) + g1(1) is %b\n" (g0 == g1#eval 0 + g1#eval 1);;
