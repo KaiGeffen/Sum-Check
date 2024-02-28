@@ -20,9 +20,15 @@ let rec show_form formula =
   | And (f1, f2) -> "(" ^ show_form f1 ^ " ^ " ^ show_form f2 ^ ")"
   | Or (f1, f2) -> "(" ^ show_form f1 ^ " ∨ " ^ show_form f2 ^ ")"
 
+(* Verifier decides this and tells Prover *)
+(* TODO Put all configuration in a single place *)
+let field_size = 19;;
+
 (* Partial Sum: A monomial linear equation *)
 class partial_sum coefficient constant =
   object
+    val coefficient = coefficient mod field_size
+    val constant = constant mod field_size
     method show : string =
       Printf.sprintf "%d * X + %d" coefficient constant
     method eval x : int =
