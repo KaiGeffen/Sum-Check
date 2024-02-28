@@ -82,9 +82,9 @@ let rec get_sharp_sat (formula : form) : int =
 (* Has 23 satisfying assignments *)
 let example_form =
   Or(
-    And(Variable "1", Not(Variable "2")),
-    Or(Variable "3", And(
-      Variable "4", Not(Variable "5"))
+    And(Variable "X1", Not(Variable "X2")),
+    Or(Variable "X3", And(
+      Variable "X4", Not(Variable "X5"))
     )
   );;
 
