@@ -1,4 +1,5 @@
-(* Run with
+(*
+  Run with
   ocamlc -o main.byte main.ml; ./main.byte   
 *)
 
@@ -49,22 +50,14 @@ let rec arithmetize (formula : pform) : aform =
   | Or (f1, f2) -> Sub (
     Add (arithmetize f1, arithmetize f2),
     Mul (arithmetize f1, arithmetize f2)
-    )
+    );;
 
 (* Verifier decides this and tells Prover *)
-(* TODO Put all configuration in a single place *)
-let field_size = 19;;
 
-(* Partial Sum: A monomial linear equation *)
-class partial_sum coefficient constant =
-  object
-    val coefficient = coefficient mod field_size
-    val constant = constant mod field_size
-    method show : string =
-      Printf.sprintf "%d * X + %d" coefficient constant
-    method eval x : int =
-      x * coefficient + constant
-  end
+(* Initialize rng *)
+Random.self_init ();;
+(* TODO Put all configuration in one place *)
+let field_size : int = 19;;
 
 (* A free variable exists with given name *)
 exception FreeVariableError of string
@@ -72,7 +65,7 @@ exception FreeVariableError of string
 exception NoFreeVariableError
 
 (* Constrain the given variable to value in the aformula *)
-let rec constrain formula variable value =
+let rec constrain (formula : aform) (variable : string) (value : int) =
   match formula with
   | Const c -> Const c
   | Variable v ->
@@ -85,13 +78,16 @@ let rec constrain formula variable value =
   | Mul (f1, f2) -> Mul (constrain f1 variable value, constrain f2 variable value)
 
 
-let rec evaluate formula : int =
+(*
+  If there is a free variable, there must be an argument given
+*)
+let rec eval formula : int =
   match formula with
   | Const c -> c
   | Variable v -> raise (FreeVariableError v)
-  | Add (f1, f2) -> evaluate f1 + evaluate f2
-  | Sub (f1, f2) -> evaluate f1 - evaluate f2
-  | Mul (f1, f2) -> evaluate f1 * evaluate f2
+  | Add (f1, f2) -> eval f1 + eval f2
+  | Sub (f1, f2) -> eval f1 - eval f2
+  | Mul (f1, f2) -> eval f1 * eval f2
 
 let rec get_first_free_variable formula : string option =
   match formula with
@@ -99,16 +95,59 @@ let rec get_first_free_variable formula : string option =
   | Variable v -> Some v
   | Add (f1, f2)
   | Sub (f1, f2)
-  | Mul (f1, f2) -> match get_first_free_variable f1  with
+  | Mul (f1, f2) -> match get_first_free_variable f1 with
     | Some v -> Some v
     | None -> get_first_free_variable f2
 
+let rec eval_monomial formula value : int =
+  (* TODO Make dry with evaluate (dict) when it comes *)
+  match get_first_free_variable formula with
+  | None -> raise NoFreeVariableError
+  | Some var -> eval (constrain formula var value)
+
 let rec get_sharp_sat (formula : aform) : int =
   match get_first_free_variable formula with
-  | None -> evaluate formula
+  | None -> eval formula
   | Some v ->
     get_sharp_sat (constrain formula v 0) +
     get_sharp_sat (constrain formula v 1);;
+
+module Prover = struct
+  (* Step 1 - Calculate the total sum of g evaluated at all Boolean inputs *)
+  let evaluate_sharp_sat (formula: aform) : int =
+    get_sharp_sat formula
+  
+  (* Step 2 - Compute partial sum of g, leaving first variable free *)
+  let rec get_partial_sum (formula : aform) : aform =
+    match get_first_free_variable formula with
+    | None -> raise NoFreeVariableError
+    | Some v ->
+      let f_at_0 = get_sharp_sat (constrain formula v 0) in
+      let f_at_1 = get_sharp_sat (constrain formula v 1) in
+      let coefficient = Const (f_at_1 - f_at_0) in
+      let constant = Const f_at_0 in
+      Add (Mul (coefficient, Variable v), constant);;
+    
+  (* Step 5 - Constrain first free variable with given value, TODO compute partial sum *)
+  let constrain_first_free_var (formula: aform) (value: int) : aform =
+    match get_first_free_variable formula with
+    | None -> raise NoFreeVariableError
+    | Some v -> constrain formula v value
+end
+
+module Verifier = struct
+  (* Step 3 - Check that partial sum and total sum agree *)
+  let check_partial_sum total_sum partial_formula =
+    total_sum == eval_monomial partial_formula 0 + eval_monomial partial_formula 1
+  
+  (* Step 4 - Pick a random number *)
+  let get_random =
+    Random.int field_size
+
+  (* Step 7 - Evaluate g at one input using oracle *)
+  let evaluate (formula : aform) (inputs : int list) : int =
+    failwith "todo"
+end
 
 (* (X1 ∧ ¬X2) ∨ (X3 ∨ (X4 ∧ ¬X5)) *)
 (* Has 23 satisfying assignments *)
@@ -119,37 +158,29 @@ let example_pform =
       Variable "X4", Not(Variable "X5"))
     )
   );;
-let example_aform = arithmetize example_pform;;
 
-Printf.printf "Propositional formula:\n%s\nArithmetic representation:\n%s\n" (show_pform example_pform) (show_aform example_aform);;
+(* Step 1 *)
+Printf.printf "Propositional formula:\n%s\n\n" (show_pform example_pform);;
+let example_aform : aform = arithmetize example_pform;;
+Printf.printf "Arithmetic representation:\n%s\n\n"  (show_aform example_aform);;
+let g0 : int = Prover.evaluate_sharp_sat example_aform;;
+Printf.printf "#SAT amount = %n\n" g0;;
 
-Printf.printf "#SAT amount = %n\n" (get_sharp_sat example_aform);;
-(*
 (* Step 2 *)
 (* 
   Given a formula with at least one free variable
   form the partial equation that leaves the first variable free
   and sums over the superset of all other variables   
 *)
-let rec get_partial_sum formula : partial_sum =
-  match get_first_free_variable formula with
-  | None -> raise NoFreeVariableError
-  | Some v ->
-    let f_at_0 = get_sharp_sat (constrain formula v false) in
-    let f_at_1 = get_sharp_sat (constrain formula v true) in
-    new partial_sum (f_at_1 - f_at_0) f_at_0;;
-
-Printf.printf "partial_sum(%s) = %s\n" (show_form example_form) (get_partial_sum example_form)#show;;
+let part_g1 : aform = Prover.get_partial_sum example_aform;;
+Printf.printf "partial_sum = %s\n" (show_aform part_g1);;
 
 (* Step 3 *)
-let g0 = get_sharp_sat example_form;;
-let g1_partial = get_partial_sum example_form;;
-Printf.printf "g0 == g1(0) + g1(1) is %b\n" (g0 == g1_partial#eval 0 + g1_partial#eval 1);;
+let result = Verifier.check_partial_sum g0 part_g1;;
+Printf.printf "g0 == g1(0) + g1(1) is %b\n" result;;
 
 (* Step 4 *)
-Random.self_init ()
-let get_random = Random.int field_size;;
-let r1 = get_random;;
+let r1 = Verifier.get_random;;
 Printf.printf "Verifier chose the number %d\n" r1;;
 
 (* Step 5 *)
@@ -157,5 +188,9 @@ Printf.printf "Verifier chose the number %d\n" r1;;
   TODO Some version of the protocol cache as it constrains from the end of the list of variables
   This is in the worse case n times worse than that, which could be optimized out
 *)
-let g1 = constrain g0
-Printf.printf "With the first variable constrained, the formula is not: %s\n" ;; *)
+
+let g1 : aform = Prover.constrain_first_free_var example_aform r1;;
+Printf.printf "With the first variable constrained, the formula is now: %s\n" (show_aform g1);;
+
+
+
