@@ -130,16 +130,19 @@ module Prover = struct
     match get_first_free_variable formula with
     | None -> raise NoFreeVariableError
     | Some v -> constrain formula v value
-end
+end;;
 
 module Verifier = struct
+  let get_random =
+    Random.self_init ();
+    Random.int field_size
   (* Step 3 - Check that partial sum and total sum agree *)
   let check_partial_sum (g : aform) (g' : aform) =
     (* Here, g is gn and g' is gn+1 *)
     get_sharp_sat g == eval_monomial g' 0 + eval_monomial g' 1
   
   (* Step 4 - Pick a random number *)
-  let get_random =
+  let get_random () =
     Random.int field_size
 
   (* Step 7 - Evaluate g at one input using oracle *)
@@ -161,7 +164,6 @@ let example_pform =
 Printf.printf "Propositional formula:\n%s\n\n" (show_pform example_pform);;
 let g0 : aform = arithmetize example_pform;;
 Printf.printf "Arithmetic representation:\n%s\n\n" (show_aform g0);;
-Printf.printf "#SAT amount = %n\n\n" (Prover.evaluate_sharp_sat g0);;
 
 (* Step 2 *)
 (* 
@@ -175,6 +177,9 @@ Printf.printf "partial_sum = %s\n" (show_aform g1_part);; *)
 (* A round is steps 2-5 *)
 (* TODO do_round is confusing since it does rounds until evaluation is complete *)
 let rec do_round (g : aform) (i : int) =
+  (* Step 1 *)
+  Printf.printf "#SAT of g%n = %n\n" i (Prover.evaluate_sharp_sat g);
+
   (* Step 2 - TODO Explain including this here where in papers it isn't in the round *)
   let g_partial : aform =  Prover.get_partial_sum g in
   let () = Printf.printf "partial_sum = %s\n" (show_aform g_partial) in
@@ -185,7 +190,7 @@ let rec do_round (g : aform) (i : int) =
   Printf.printf "g%n == g%n(0) + g%n(1) is %b\n" i (i + 1) (i + 1) result;
 
   (* Step 4 *)
-  let r = Verifier.get_random in
+  let r = Verifier.get_random () in
   Printf.printf "Verifier chose the number %d\n\n" r;
 
   (* Step 5 *)
