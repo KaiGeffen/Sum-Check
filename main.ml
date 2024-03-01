@@ -2,6 +2,10 @@
   Run with
   ocamlc -o main.byte main.ml; ./main.byte   
 *)
+(* TODO Names *)
+let (%) x y =
+  let result = x mod y in
+  if result < 0 then result + y else result
 
 (* Propositional formulas *)
 type pform = 
@@ -66,9 +70,9 @@ let rec eval formula : int =
   match formula with
   | Const c -> c
   | Variable v -> raise (FreeVariableError v)
-  | Add (f1, f2) -> eval f1 + eval f2
-  | Sub (f1, f2) -> eval f1 - eval f2
-  | Mul (f1, f2) -> eval f1 * eval f2
+  | Add (f1, f2) -> (eval f1) + (eval f2) % field_size
+  | Sub (f1, f2) -> (eval f1) - (eval f2) % field_size
+  | Mul (f1, f2) -> (eval f1) * (eval f2) % field_size
 
 let rec get_first_free_variable formula : string option =
   match formula with
@@ -107,7 +111,7 @@ let rec get_sharp_sat (formula : aform) : int =
   | None -> eval formula
   | Some v ->
     get_sharp_sat (constrain formula v 0) +
-    get_sharp_sat (constrain formula v 1);;
+    get_sharp_sat (constrain formula v 1) % field_size
 
 module Prover = struct
   (* Step 1 - Calculate the total sum of g evaluated at all Boolean inputs *)
@@ -121,8 +125,8 @@ module Prover = struct
     | Some v ->
       let f_at_0 = get_sharp_sat (constrain formula v 0) in
       let f_at_1 = get_sharp_sat (constrain formula v 1) in
-      let coefficient = Const ((f_at_1 - f_at_0) mod field_size) in
-      let constant = Const (f_at_0 mod field_size) in
+      let coefficient = Const (f_at_1 - f_at_0) in
+      let constant = Const (f_at_0) in
       Add (Mul (coefficient, Variable v), constant);;
     
   (* Step 5 - Constrain first free variable with given value, TODO compute partial sum *)
@@ -130,7 +134,7 @@ module Prover = struct
     match get_first_free_variable formula with
     | None -> raise NoFreeVariableError
     | Some v -> constrain formula v value
-end;;
+end
 
 module Verifier = struct
   let get_random =
@@ -139,6 +143,9 @@ module Verifier = struct
   (* Step 3 - Check that partial sum and total sum agree *)
   let check_partial_sum (g : aform) (g' : aform) =
     (* Here, g is gn and g' is gn+1 *)
+    Printf.printf "g = %i\n" ((get_sharp_sat g) % field_size);
+    Printf.printf "g(0) = %i\n" (eval_monomial g' 0 % field_size);
+    Printf.printf "g(1) = %i\n" (eval_monomial g' 1 % field_size);
     get_sharp_sat g == eval_monomial g' 0 + eval_monomial g' 1
   
   (* Step 4 - Pick a random number *)
@@ -178,7 +185,7 @@ Printf.printf "partial_sum = %s\n" (show_aform g1_part);; *)
 (* TODO do_round is confusing since it does rounds until evaluation is complete *)
 let rec do_round (g : aform) (i : int) =
   (* Step 1 *)
-  Printf.printf "#SAT of g%n = %n\n" i (Prover.evaluate_sharp_sat g);
+  Printf.printf "#SAT of g%i = %i\n" i (Prover.evaluate_sharp_sat g);
 
   (* Step 2 - TODO Explain including this here where in papers it isn't in the round *)
   let g_partial : aform =  Prover.get_partial_sum g in
@@ -187,7 +194,8 @@ let rec do_round (g : aform) (i : int) =
   (* Step 3 *)
   (* TODO Print out the details *)
   let result = Verifier.check_partial_sum g g_partial in
-  Printf.printf "g%n == g%n(0) + g%n(1) is %b\n" i (i + 1) (i + 1) result;
+  Printf.printf "g%i == g%i(0) + g%i(1) is %b\n" i (i + 1) (i + 1) result;
+  if not result then raise NoFreeVariableError;
 
   (* Step 4 *)
   let r = Verifier.get_random () in
@@ -203,4 +211,4 @@ let rec do_round (g : aform) (i : int) =
   | None -> Printf.printf "Rounds complete\n\n"
   | Some _ -> do_round g' (i + 1)
 
-let () = do_round g0 0
+let () = do_round (constrain (constrain g0 "X1" 7) "X2" 7) 0
