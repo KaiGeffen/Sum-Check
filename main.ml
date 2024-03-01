@@ -139,9 +139,6 @@ module Prover = struct
 end
 
 module Verifier = struct
-  let get_random =
-    Random.self_init ();
-    Random.int field_size
   (* Step 3 - Check that partial sum and total sum agree *)
   let check_partial_sum (g : aform) (g' : aform) =
     (* Here, g is gn and g' is gn+1 *)
@@ -152,10 +149,27 @@ module Verifier = struct
   (* Step 4 - Pick a random number *)
   let get_random () =
     Random.int field_size
-
-  (* Step 7 - Evaluate g at one input using oracle *)
-  let evaluate (formula : aform) (inputs : int list) : int =
-    failwith "todo"
+  
+  (* Step 7 - Evaluate g at one input using an oracle *)
+  (* Constrain each var in g, with the last el of rs being the first constraint *)
+  let rec constrain_fully (g : aform) (rs : int list) =
+    match rs with
+    | [] -> failwith "Oracle wasn't provided any random values."
+    | [r] ->
+      Printf.printf "Oracle constraining with value %i\n" r;
+      constrain_first g r
+    | r :: tl ->
+      Printf.printf "Oracle constraining with value %i\n" r;
+      constrain_first (constrain_fully g tl) r
+  
+  let oracle_check (g0 : aform) (gv: aform) (rs : int list) : bool =
+    match rs with
+    | [] -> failwith "Oracle wasn't provided any random values."
+    | [rv]
+    | rv :: _ -> 
+      let oracle_evaluation = eval (constrain_fully g0 rs) in
+      Printf.printf "Oracle sez: %i\n" oracle_evaluation;
+      (eval_monomial gv rv) == oracle_evaluation
 end
 
 (* (X1 ∧ ¬X2) ∨ (X3 ∨ (X4 ∧ ¬X5)) *)
@@ -184,7 +198,7 @@ Printf.printf "partial_sum = %s\n" (show_aform g1_part);; *)
 
 (* A round is steps 2-5 *)
 (* TODO do_round is confusing since it does rounds until evaluation is complete *)
-let rec do_round (g : aform) (i : int) =
+let rec do_round (g0: aform) (g : aform) (i : int) (rs : int list) =
   (* Step 1 *)
   Printf.printf "#SAT of g%i = %i\n" i (Prover.evaluate_sharp_sat g);
 
@@ -209,7 +223,12 @@ let rec do_round (g : aform) (i : int) =
   *)
   let g' : aform = (constrain_first g r) in
   match get_first_free_variable g' with
-  | None -> Printf.printf "Rounds complete\n\n"
-  | Some _ -> do_round g' (i + 1)
+  | None -> 
+    (* Step 7 *)
+    Verifier.oracle_check g0 g (r::rs)
+  | Some _ -> do_round g0 g' (i + 1) (r::rs);;
 
-let () = do_round g0 0
+(* Perform repeatedly do the steps of checking / constraining with V's rng *)
+let result = do_round g0 g0 0 [] in
+Printf.printf "Verifier completed step 7 and believes the Prover: %b\n" result
+ 
