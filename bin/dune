@@ -1,0 +1,4 @@
+(executable
+ (public_name Sum_Check)
+ (name main)
+ (libraries Sum_Check))

@@ -8,6 +8,9 @@
 *.cmxs
 *.cmxa
 
+# Mac files
+.DS_Store
+
 # ocamlbuild working directory
 _build/
 
