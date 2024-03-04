@@ -1,7 +1,6 @@
 (* main.ml *)
 
 open Sum_Check
-open Utils
 open Formula
 open Prover
 open Verifier
@@ -34,7 +33,7 @@ Printf.printf "partial_sum = %s\n" (show_aform g1_part);; *)
 (* TODO do_round is confusing since it does rounds until evaluation is complete *)
 let rec do_round (g0: aform) (g : aform) (i : int) (rs : int list) =
   (* Step 1 *)
-  Printf.printf "#SAT of g%i = %i\n" i (Prover.evaluate_sharp_sat g);
+  Printf.printf "#SAT of g%i = %i\n" i (Prover.eval_sharp_sat g);
 
   (* Step 2 - TODO Explain including this here where in papers it isn't in the round *)
   let g_partial : aform =  Prover.get_partial_sum g in
@@ -44,7 +43,6 @@ let rec do_round (g0: aform) (g : aform) (i : int) (rs : int list) =
   (* TODO Print out the details *)
   let result = Verifier.check_partial_sum g g_partial in
   Printf.printf "g%i == g%i(0) + g%i(1) is %b\n" i (i + 1) (i + 1) result;
-  if not result then raise NoFreeVariableError;
 
   (* Step 4 *)
   let r = Verifier.get_random () in

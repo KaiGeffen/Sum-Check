@@ -90,11 +90,11 @@ let constrain_first (formula : aform) (value : int) : aform  =
 let eval_monomial formula value : int =
   eval (constrain_first formula value)
 
-let rec get_sharp_sat (formula : aform) : int =
+let rec eval_sharp_sat (formula : aform) : int =
   match get_first_free_variable formula with
   | None -> eval formula
   | Some v ->
     (
-      get_sharp_sat (constrain formula v 0) +
-      get_sharp_sat (constrain formula v 1)
+      eval_sharp_sat (constrain formula v 0) +
+      eval_sharp_sat (constrain formula v 1)
     ) % field_size

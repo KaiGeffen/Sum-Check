@@ -7,7 +7,7 @@ module Verifier = struct
     (* Here, g is gn and g' is gn+1 *)
     Printf.printf "g(0) = %i\n" (eval_monomial g' 0);
     Printf.printf "g(1) = %i\n" (eval_monomial g' 1);
-    get_sharp_sat g == (eval_monomial g' 0 + eval_monomial g' 1) % field_size
+    eval_sharp_sat g == (eval_monomial g' 0 + eval_monomial g' 1) % field_size
   
   (* Step 4 - Pick a random number *)
   let get_random () =
