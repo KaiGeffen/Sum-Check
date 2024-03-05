@@ -46,7 +46,7 @@ let rec do_sumcheck ~g0 ~g ~round ~randoms =
   match get_first_free_variable g' with
   | None -> 
     (* No more rounds of the protocol, accept/reject based on oracle check *)
-    Verifier.oracle_check g0 g (r::randoms)
+    Verifier.oracle_check ~g0 ~gv:g ~rs:(r::randoms)
   | Some _ -> do_sumcheck ~g0 ~g:g' ~round:(round + 1) ~randoms:(r::randoms);;
 
 
@@ -54,5 +54,5 @@ let rec do_sumcheck ~g0 ~g ~round ~randoms =
 (* Verifier calculates g and makes a claim about it *)
 Printf.printf "Verifier computes and claims that #SAT of g is %i\n\n" (Prover.eval_sharp_sat g0);;
 let result = do_sumcheck ~g0:g0 ~g:g0 ~round:1 ~randoms:[];;
-Printf.printf "Verifier completed step 7 and believes the Prover: %b\n" result
+Printf.printf "The sumcheck protocol has completed, and the Prover trust Verifier: %b\n" result
  
