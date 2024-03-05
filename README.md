@@ -1,5 +1,4 @@
 # Sum-Check
-### >>> WIP, needs review <<<
 
 An implementation of Sum-Check in OCaml.
 
@@ -50,7 +49,7 @@ For each round
 $i \in \{1, \ldots, v\}$
 , the Prover comes up with a total_sum $g_{i-1}$ and a partial_sum $g_i$ (For the first round, $g_0 = C$).
 
-The Verifier checks that they agree ($g_{i-1} = g_i(0) + g_i(1)$), and that $g_i$ is a univariate of degree at most 1.
+The Verifier checks that they agree ( $g_{i-1} = g_i(0) + g_i(1)$ ), and that $g_i$ is a univariate of degree at most 1.
 
 The Verifier chooses a random value $r_i$.
 
