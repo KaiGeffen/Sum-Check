@@ -7,7 +7,7 @@ let (%) dividend divisor =
 Random.self_init ();;
 
 (* TODO Put all configuration in one place *)
-let field_size : int = 19;;
+let field_size : int = 1337;;
 
 (* A free variable exists with given name *)
 exception FreeVariableError of string

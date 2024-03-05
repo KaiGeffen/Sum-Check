@@ -15,7 +15,7 @@ let example_pform =
   );;
 Printf.printf "Propositional formula:\n%s\n\n" (show_pform example_pform);;
 let g0 : aform = arithmetize example_pform;;
-Printf.printf "Arithmetic representation:\n%s\n\n" (show_aform g0);;
+Printf.printf "Arithmetic representation (g):\n%s\n\n" (show_aform g0);;
 
 (* Perform the full sumcheck protocol
   g0: The starting (arithmetic) function
