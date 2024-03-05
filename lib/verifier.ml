@@ -4,17 +4,26 @@ open Formula
 module Verifier = struct
   (* Check that partial sum and total sum agree *)
   let check_partial_sum ~total_sum ~partial_sum ~round =
-    (* Here, g is gn and g' is gn+1 *)
-    let g_at_0 = eval_monomial partial_sum 0 in
-    let g_at_1 = eval_monomial partial_sum 1 in
-
     Printf.printf "Total sum: g%i = %i\n" (round - 1) total_sum;
     Printf.printf "Partial sum: g%i = %s\n" round (show_aform partial_sum);
-    Printf.printf "g%i(0) = %i\n" round g_at_0;
-    Printf.printf "g%i(1) = %i\n" round (eval_monomial partial_sum 1);
-    Printf.printf "g%i = %i = (%i + %i) mod %i = g%i(0) + g%i(1)\n"
-      (round - 1) total_sum g_at_0 g_at_1 field_size round round;
-    total_sum == (g_at_0 + g_at_1) % field_size
+
+    (* First check if is a univariate/degree of most 1 *)
+    let var_deg_check = is_univariate_of_deg_max_1 partial_sum in
+    Printf.printf "Partial sum is a univariate of degree at most 1: %b\n" var_deg_check;
+    
+    if not var_deg_check then
+      false
+    else    
+      (* Here, g is gn and g' is gn+1 *)
+      let g_at_0 = eval_monomial partial_sum 0 in
+      let g_at_1 = eval_monomial partial_sum 1 in
+      
+      Printf.printf "g%i(0) = %i\n" round g_at_0;
+      Printf.printf "g%i(1) = %i\n" round (eval_monomial partial_sum 1);
+      Printf.printf "g%i = %i = (%i + %i) mod %i = g%i(0) + g%i(1)\n"
+        (round - 1) total_sum g_at_0 g_at_1 field_size round round;
+      
+      total_sum == (g_at_0 + g_at_1) % field_size
   
   (* Pick a random number in the field *)
   let get_random () =
@@ -35,6 +44,10 @@ module Verifier = struct
       | r :: tl -> constrain_first (constrain_fully g tl) r
     in
     
+    (* First check if gv is a univariate/degree of most 1 *)
+    let var_deg_check = is_univariate_of_deg_max_1 gv in
+    Printf.printf "gv is a univariate of degree at most 1: %b\n" var_deg_check;
+
     match rs with
     (* TODO Using gadts to ensure the list is size 1+, I can remove this *)
     | [] -> failwith "Oracle wasn't provided any random values."

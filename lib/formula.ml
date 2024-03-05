@@ -98,3 +98,27 @@ let rec eval_sharp_sat (formula : aform) : int =
       eval_sharp_sat (constrain formula v 0) +
       eval_sharp_sat (constrain formula v 1)
     ) % field_size
+
+(* Returns if the formula is a univariate of degree at most 1 *)
+let is_univariate_of_deg_max_1 f =
+  let rec has_var f =
+    match f with
+    | Const _ -> false
+    | Variable _ -> true
+    | Add (f1, f2) | Sub (f1, f2) | Mul (f1, f2) ->
+      (has_var f1) || (has_var f2)
+  in
+  let is_univariate f =
+    not (has_var (constrain_first f 0))
+  in
+  let rec get_degree f =
+    match f with
+    | Const _ -> 0
+    | Variable _ -> 1
+    | Add (f1, f2) | Sub (f1, f2) ->
+      max (get_degree f1) (get_degree f2)
+    | Mul (f1, f2) ->
+      (get_degree f1) + (get_degree f2)
+  in
+
+  is_univariate f && (get_degree f <= 1)

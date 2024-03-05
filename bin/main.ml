@@ -27,7 +27,7 @@ let rec do_sumcheck ~g0 ~g ~round ~randoms =
   Printf.printf "Round %i\n" round;
 
   let total_sum : int = Prover.eval_sharp_sat g in
-  let partial_sum : aform =  Prover.get_partial_sum g in
+  let partial_sum : aform = Prover.get_partial_sum g in
 
   (* Verifier checks that the total sum and partial sum are equal *)
   let result = Verifier.check_partial_sum ~total_sum ~partial_sum ~round in
@@ -40,7 +40,7 @@ let rec do_sumcheck ~g0 ~g ~round ~randoms =
   Printf.printf "Verifier chose the number %d\n\n" r;
 
   (*
-    TODO Some version of the protocol cache as it constrains from the end of the list of variables
+    TODO Some versions of the protocol cache as they constrain from the end of the list of variables
     This is in the worse case n times worse than that, which could be optimized out
   *)
   match get_first_free_variable g' with
