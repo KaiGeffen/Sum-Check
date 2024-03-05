@@ -31,12 +31,12 @@ let rec do_sumcheck ~g0 ~g ~round ~randoms =
 
   (* Verifier checks that the total sum and partial sum are equal *)
   let result = Verifier.check_partial_sum ~total_sum ~partial_sum ~round in
-  if (not result) then failwith
-    (Printf.sprintf "Failed in round %i" round);
+  if (not result) then
+    failwith (Printf.sprintf "Failed in round %i" round);
 
   (* Verifier picks a new random number and constrains based on it *)
   let r = Verifier.get_random () in
-  let g' : aform = (constrain_first g r) in
+  let g' : aform = Prover.constrain_first ~formula:g ~value:r in
   Printf.printf "Verifier chose the number %d\n\n" r;
 
   (*
@@ -49,10 +49,7 @@ let rec do_sumcheck ~g0 ~g ~round ~randoms =
     Verifier.oracle_check ~g0 ~gv:g ~rs:(r::randoms)
   | Some _ -> do_sumcheck ~g0 ~g:g' ~round:(round + 1) ~randoms:(r::randoms);;
 
-
-
 (* Verifier calculates g and makes a claim about it *)
 Printf.printf "Verifier computes and claims that #SAT of g is %i\n\n" (Prover.eval_sharp_sat g0);;
 let result = do_sumcheck ~g0:g0 ~g:g0 ~round:1 ~randoms:[];;
 Printf.printf "The sumcheck protocol has completed, and the Prover trust Verifier: %b\n" result
- 

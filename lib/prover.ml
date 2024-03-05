@@ -2,12 +2,12 @@ open Utils
 open Formula
 
 module Prover = struct
-  (* Step 1 - Calculate the total sum of g evaluated at all Boolean inputs *)
-  let eval_sharp_sat (formula: aform) : int =
-    eval_sharp_sat formula
+  (* Calculate the total sum of g evaluated at all Boolean inputs *)
+  let eval_sharp_sat formula : int =
+    Formula.eval_sharp_sat formula
   
-  (* Step 2 - Compute partial sum of g, leaving first variable free *)
-  let get_partial_sum (formula : aform) : aform =
+  (* Compute the partial sum of g, leaving first variable free *)
+  let get_partial_sum formula : aform =
     match get_first_free_variable formula with
     | None -> raise NoFreeVariableError
     | Some v ->
@@ -17,8 +17,8 @@ module Prover = struct
       let constant = Const (f_at_0) in
       Add (Mul (coefficient, Variable v), constant);;
     
-  (* Step 5 - Constrain first free variable with given value, TODO compute partial sum *)
-  let constrain_first_free_var (formula: aform) (value: int) : aform =
+  (* Constrain the first free variable with given value *)
+  let constrain_first ~formula ~value : aform =
     match get_first_free_variable formula with
     | None -> raise NoFreeVariableError
     | Some v -> constrain formula v value

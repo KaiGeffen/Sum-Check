@@ -29,7 +29,7 @@ let rec show_pform (formula : pform) =
 let rec show_aform (formula : aform) =
   match formula with
   | Const c -> string_of_int c
-  (* Reserve numbers *)
+  (* TODO Reserve numbers *)
   | Variable s -> s
   | Add (f1, f2) -> "(" ^ show_aform f1 ^ " + " ^ show_aform f2 ^ ")"
   | Sub (f1, f2) -> "(" ^ show_aform f1 ^ " - " ^ show_aform f2 ^ ")"
