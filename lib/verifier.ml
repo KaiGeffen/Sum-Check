@@ -3,11 +3,18 @@ open Formula
 
 module Verifier = struct
   (* Step 3 - Check that partial sum and total sum agree *)
-  let check_partial_sum (g : aform) (g' : aform) =
+  let check_partial_sum ~total_sum ~partial_sum ~round =
     (* Here, g is gn and g' is gn+1 *)
-    Printf.printf "g(0) = %i\n" (eval_monomial g' 0);
-    Printf.printf "g(1) = %i\n" (eval_monomial g' 1);
-    eval_sharp_sat g == (eval_monomial g' 0 + eval_monomial g' 1) % field_size
+    let g_at_0 = eval_monomial partial_sum 0 in
+    let g_at_1 = eval_monomial partial_sum 1 in
+
+    Printf.printf "Total sum: g%i = %i\n" (round - 1) total_sum;
+    Printf.printf "Partial sum: g%i = %s\n" round (show_aform partial_sum);
+    Printf.printf "g%i(0) = %i\n" round g_at_0;
+    Printf.printf "g%i(1) = %i\n" round (eval_monomial partial_sum 1);
+    Printf.printf "g%i = %i = (%i + %i) mod %i = g%i(0) + g%i(1)\n"
+      (round - 1) total_sum g_at_0 g_at_1 field_size round round;
+    total_sum == (g_at_0 + g_at_1) % field_size
   
   (* Step 4 - Pick a random number *)
   let get_random () =

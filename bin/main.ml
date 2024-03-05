@@ -24,35 +24,35 @@ Printf.printf "Arithmetic representation:\n%s\n\n" (show_aform g0);;
   randoms: The current list of random numbers [r1,r2,...,ri]
 *)
 let rec do_sumcheck ~g0 ~g ~round ~randoms =
-  (* Step 1 *)
-  Printf.printf "#SAT of g%i = %i\n" (round - 1) (Prover.eval_sharp_sat g);
+  Printf.printf "Round %i\n" round;
 
-  (* Step 2 - TODO Explain including this here where in papers it isn't in the round *)
-  let g_partial : aform =  Prover.get_partial_sum g in
-  let () = Printf.printf "g%i = %s\n" (round - 1) (show_aform g_partial) in
+  let total_sum : int = Prover.eval_sharp_sat g in
+  let partial_sum : aform =  Prover.get_partial_sum g in
 
-  (* Step 3 *)
-  (* TODO Print out the details *)
-  let result = Verifier.check_partial_sum g g_partial in
-  Printf.printf "g%i == g%i(0) + g%i(1) is %b\n" (round - 1) round round result;
+  (* Verifier checks that the total sum and partial sum are equal *)
+  let result = Verifier.check_partial_sum ~total_sum ~partial_sum ~round in
+  if (not result) then failwith
+    (Printf.sprintf "Failed in round %i" round);
 
-  (* Step 4 *)
+  (* Verifier picks a new random number and constrains based on it *)
   let r = Verifier.get_random () in
+  let g' : aform = (constrain_first g r) in
   Printf.printf "Verifier chose the number %d\n\n" r;
 
-  (* Step 5 *)
   (*
     TODO Some version of the protocol cache as it constrains from the end of the list of variables
     This is in the worse case n times worse than that, which could be optimized out
   *)
-  let g' : aform = (constrain_first g r) in
   match get_first_free_variable g' with
   | None -> 
-    (* Step 7 *)
+    (* No more rounds of the protocol, accept/reject based on oracle check *)
     Verifier.oracle_check g0 g (r::randoms)
-  | Some _ -> do_sumcheck ~g0 ~g:g' ~round ~randoms:(r::randoms)
+  | Some _ -> do_sumcheck ~g0 ~g:g' ~round:(round + 1) ~randoms:(r::randoms);;
 
-(* Perform repeatedly do the steps of checking / constraining with V's rng *)
+
+
+(* Verifier calculates g and makes a claim about it *)
+Printf.printf "Verifier computes and claims that #SAT of g is %i\n\n" (Prover.eval_sharp_sat g0);;
 let result = do_sumcheck ~g0:g0 ~g:g0 ~round:1 ~randoms:[];;
 Printf.printf "Verifier completed step 7 and believes the Prover: %b\n" result
  
